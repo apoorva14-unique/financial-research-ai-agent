@@ -4,3 +4,6 @@ numpy
 yfinance
 plotly
 python-dotenv
+requests
+langchain
+langchain-groq
