@@ -296,17 +296,17 @@ python -m tests.test_agent_live
 
 ---
 
-🌐 Deployment
+## 17.🌐 Deployment
 
 The application is deployed using Streamlit Community Cloud.
 
 Live Application
 
-👉 Open the Live Application
+👉 Open the Live Application - https://financial-research-ai-agent-bbq6pcsg4njqsvfi4tt3en.streamlit.app/
 
 The deployed application uses the Groq API key through secure deployment secrets rather than storing credentials in the GitHub repository.
 
-## 17. Regulatory & Educational Disclaimer
+## 18. Regulatory & Educational Disclaimer
 
 > **DISCLAIMER:**  
 > This software is strictly developed for **educational and academic research purposes** as part of a final project submission. It is **not** registered with the Securities and Exchange Board of India (SEBI) as an investment advisor.  
@@ -315,7 +315,7 @@ The deployed application uses the Groq API key through secure deployment secrets
 
 ---
 
-## 18. Future Enhancements
+## 19. Future Enhancements
 - **Export to PDF:** Ability to download generated multi-page equity research reports as branded PDF files.
 - **Peer Comparison Matrix:** Side-by-side radar and tabular comparison between sector rivals (e.g. TCS vs. Infosys vs. Wipro).
 - **Portfolio Risk Analytics:** Calculation of portfolio-level metrics including Beta, Value at Risk (VaR), and Sharpe Ratio.
