@@ -296,6 +296,16 @@ python -m tests.test_agent_live
 
 ---
 
+🌐 Deployment
+
+The application is deployed using Streamlit Community Cloud.
+
+Live Application
+
+👉 Open the Live Application
+
+The deployed application uses the Groq API key through secure deployment secrets rather than storing credentials in the GitHub repository.
+
 ## 17. Regulatory & Educational Disclaimer
 
 > **DISCLAIMER:**  
@@ -310,3 +320,9 @@ python -m tests.test_agent_live
 - **Peer Comparison Matrix:** Side-by-side radar and tabular comparison between sector rivals (e.g. TCS vs. Infosys vs. Wipro).
 - **Portfolio Risk Analytics:** Calculation of portfolio-level metrics including Beta, Value at Risk (VaR), and Sharpe Ratio.
 - **Voice Interface:** Voice-to-text querying using Whisper models for hands-free financial analysis.
+
+---
+
+⭐ Acknowledgement
+
+This project was developed as a B.Tech/internship project to explore financial analytics, Python development, Streamlit application development, and tool-using AI agents.
