@@ -8,6 +8,7 @@ from data.stock_data import get_stock_history, get_stock_info
 from analysis.technical import calculate_indicators
 from analysis.fundamentals import get_fundamentals
 from data.news_data import get_stock_news
+from analysis.sentiment import calculate_sentiment_summary
 from ui.chat import render_agent_chat
 
 
@@ -273,26 +274,94 @@ if active_ticker:
             )
 
             # -----------------------
-            # NEWS
+            # NEWS & SENTIMENT ANALYSIS
             # -----------------------
-            st.subheader("Latest Financial News")
-
-            news = get_stock_news(
-                fundamentals.get("company_name", active_ticker)
+            st.subheader("📰 Latest Financial News & Sentiment Analysis")
+            st.caption(
+                "Rule-based VADER sentiment analysis on news headlines. "
+                "Educational and research purposes only; not professional investment advice."
             )
 
-            for article in news:
-                st.markdown(
-                    f"**{article['title']}**"
-                )
+            try:
+                company_query = fundamentals.get("company_name") or company_name or active_ticker
+                news = get_stock_news(company_query, limit=5)
 
-                st.caption(
-                    article["published"]
-                )
+                if not news:
+                    st.info(f"No recent news articles found for '{company_query}'.")
+                else:
+                    # 1. Sentiment Summary Metrics
+                    summary = calculate_sentiment_summary(news)
 
-                st.markdown(
-                    article["link"]
-                )
+                    col_s1, col_s2, col_s3, col_s4, col_s5 = st.columns(5)
+                    col_s1.metric("Total Articles", summary["total_articles"])
+                    col_s2.metric("Positive", summary["positive_count"])
+                    col_s3.metric("Neutral", summary["neutral_count"])
+                    col_s4.metric("Negative", summary["negative_count"])
+                    col_s5.metric(
+                        "Avg Sentiment",
+                        f"{summary['average_sentiment_score']:+.2f}",
+                        summary["overall_sentiment"]
+                    )
+
+                    # 2. Sentiment Distribution Bar Chart
+                    chart_fig = go.Figure(
+                        data=[
+                            go.Bar(
+                                x=["Positive", "Neutral", "Negative"],
+                                y=[
+                                    summary["positive_count"],
+                                    summary["neutral_count"],
+                                    summary["negative_count"]
+                                ],
+                                marker_color=["#16a34a", "#64748b", "#dc2626"],
+                                text=[
+                                    summary["positive_count"],
+                                    summary["neutral_count"],
+                                    summary["negative_count"]
+                                ],
+                                textposition="auto",
+                            )
+                        ]
+                    )
+                    chart_fig.update_layout(
+                        title="News Sentiment Breakdown",
+                        xaxis_title="Sentiment Category",
+                        yaxis_title="Article Count",
+                        yaxis=dict(dtick=1),
+                        height=260,
+                        margin=dict(l=20, r=20, t=40, b=20),
+                    )
+                    st.plotly_chart(chart_fig, use_container_width=True)
+
+                    # 3. Individual Article Cards
+                    for article in news:
+                        title = format_text(article.get("title"))
+                        source = article.get("source") or "Unknown Source"
+                        pub_date = article.get("published") or "Date N/A"
+                        link = article.get("link")
+                        score = article.get("sentiment_score", 0.0)
+                        label = article.get("sentiment_label", "Neutral")
+
+                        # Display headline and source/date metadata
+                        st.markdown(f"**{title}**")
+                        st.caption(f"Source: {source} | Published: {pub_date}")
+
+                        # Display sentiment label badge and numerical score
+                        if label == "Positive":
+                            st.markdown(f":green[● **Positive**] (Compound Score: `{score:+.2f}`)")
+                        elif label == "Negative":
+                            st.markdown(f":red[● **Negative**] (Compound Score: `{score:+.2f}`)")
+                        else:
+                            st.markdown(f":gray[● **Neutral**] (Compound Score: `{score:+.2f}`)")
+
+                        # Article URL
+                        if link and str(link).startswith("http"):
+                            st.markdown(f"[Read Full Article ↗]({link})")
+
+                        st.divider()
+
+            except Exception as news_err:
+                st.warning(f"Unable to fetch financial news updates: {news_err}")
 
         except Exception as e:
             st.error(

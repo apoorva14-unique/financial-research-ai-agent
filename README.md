@@ -6,7 +6,7 @@
 [![Market](https://img.shields.io/badge/Market-NSE%20%7C%20BSE-orange.svg)](https://www.nseindia.com/)
 [![LangChain](https://img.shields.io/badge/Framework-LangChain-brightgreen.svg)](https://www.langchain.com/)
 [![Groq](https://img.shields.io/badge/LLM%20Inference-Groq-black.svg)](https://groq.com/)
-[![Tests](https://img.shields.io/badge/Tests-13%20Passing-success.svg)](tests/)
+[![Tests](https://img.shields.io/badge/Tests-27%20Passing-success.svg)](tests/)
 
 ---
 
@@ -99,6 +99,7 @@ flowchart TD
 - **Inference Engine:** [Groq Cloud API](https://console.groq.com/)
 - **Market Data Provider:** [yfinance](https://github.com/ranaroussi/yfinance) (Yahoo Finance API)
 - **News Ingestion:** Requests + Python XML `ElementTree` (Google News RSS)
+- **Sentiment Analysis:** [vaderSentiment](https://github.com/cjhutto/vaderSentiment) (Rule-based lexical compound scoring)
 - **Data Manipulation:** [Pandas](https://pandas.pydata.org/), [NumPy](https://numpy.org/)
 - **Data Visualization:** [Plotly](https://plotly.com/python/) (Graph Objects)
 - **Web Application Framework:** [Streamlit](https://streamlit.io/)
@@ -117,9 +118,10 @@ financial-research-ai-agent/
 │   ├── agent_core.py               # ReAct agent loop, ChatGroq, and run_agent()
 │   └── tools.py                    # Tool implementations with defensive error handling
 │
-├── analysis/                       # Quantitative Analysis Engines
+├── analysis/                       # Quantitative Analysis & Sentiment Engines
 │   ├── __init__.py                 # Analysis package marker
 │   ├── fundamentals.py             # Fundamental metrics extractor (P/E, ROE, P/B)
+│   ├── sentiment.py                # VADER news sentiment analyzer & aggregator
 │   └── technical.py                # Technical indicators engine (RSI, SMA, EMA, MACD)
 │
 ├── config/                         # Application Configuration
@@ -128,7 +130,7 @@ financial-research-ai-agent/
 │
 ├── data/                           # External Data Retrieval Modules
 │   ├── __init__.py                 # Data package marker
-│   ├── news_data.py                # Google News RSS parser
+│   ├── news_data.py                # Google News RSS parser with sentiment enrichment
 │   └── stock_data.py               # yfinance OHLCV and corporate info fetcher
 │
 ├── tests/                          # Automated Pytest Test Suite
@@ -136,7 +138,8 @@ financial-research-ai-agent/
 │   ├── test_agent_live.py          # Live end-to-end verification of all 5 query types
 │   ├── test_agent_suite.py         # Unit tests for ticker normalization & agent loop
 │   ├── test_fundamentals.py        # Unit tests for fundamental ratios
-│   ├── test_news.py                # Unit tests for news RSS parser
+│   ├── test_news.py                # Unit tests for news RSS parser & error handling
+│   ├── test_sentiment.py           # Unit tests for VADER scoring & summary math
 │   ├── test_stock_data.py          # Unit tests for historical stock data
 │   └── test_technical.py           # Unit tests for technical indicator math
 │
@@ -265,27 +268,68 @@ Extracted via `analysis/fundamentals.py`:
 
 ---
 
-## 15. Financial News Features
-Integrated via `data/news_data.py`:
-- Real-time RSS search queried against Google News for Indian equity topics.
-- Extracts headline titles, publication timestamps, and verified source URLs.
-- Filtered and structured into markdown tables for analyst review.
+## 15. Financial News & Sentiment Analysis Features
+Integrated via `data/news_data.py` and `analysis/sentiment.py`:
+- **Real-Time News Aggregation:** Real-time RSS search queried against Google News for Indian equity topics (`<company> stock India`), extracting headline, publisher source, publication timestamp, and verified direct URL.
+- **VADER Sentiment Analysis:** Lexical rule-based sentiment intensity scoring powered by `vaderSentiment` (`SentimentIntensityAnalyzer`). Evaluates the compound valence score of each news headline between `-1.0` (extremely negative) and `+1.0` (extremely positive).
+- **Track A Sentiment Classification Thresholds:**
+  - 🟢 **Positive:** Compound Score $\ge +0.5$
+  - 🔴 **Negative:** Compound Score $\le -0.5$
+  - ⚪ **Neutral:** $-0.5 <$ Compound Score $< +0.5$
+- **Aggregated Sentiment Summary:** Automatically calculates:
+  - Total number of articles
+  - Positive, Neutral, and Negative article counts
+  - Overall average compound sentiment score
+  - Distribution bar chart visualized interactively using Plotly
+- **Defensive Error Handling:**
+  - Safely handles network timeouts, HTTP errors, and malformed XML feeds without crashing the application.
+  - Handles missing, empty, or whitespace-only headlines gracefully by assigning a neutral score (`0.0`).
+  - Isolates article parsing so that an anomaly in one item never prevents the rest of the dashboard from rendering.
+
+### Example Structured Output
+```json
+{
+  "title": "Reliance Industries reports 12% rise in quarterly net profit - Economic Times",
+  "source": "Economic Times",
+  "published": "Sat, 19 Sep 2026 08:30:00 GMT",
+  "link": "https://news.google.com/rss/articles/...",
+  "sentiment_score": 0.5106,
+  "sentiment_label": "Positive"
+}
+```
+
+### Limitations of Rule-Based Sentiment Analysis
+> [!IMPORTANT]
+> - **Lexicon Heuristic:** VADER uses a generalized rule-based dictionary. It may not fully grasp subtle financial domain jargon (for instance, *"debt reduction"* vs. *"revenue reduction"*).
+> - **Absence of Broad Context:** Sentiment is evaluated at the headline level. It does not read behind paywalls, parse comprehensive earnings reports, or factor in broader macroeconomic context.
+> - **No Predictive Capability:** Sentiment scores reflect public news tone at a moment in time and **do NOT predict future stock price movements or investment returns**.
+> - **Educational Use Only:** This feature is built strictly for research and academic study and does not constitute SEBI-registered financial or investment advice.
 
 ---
 
 ## 16. Testing Instructions
 
-The project features a comprehensive automated test suite with **13 unit tests** covering all modules and tools.
+The project features a comprehensive automated test suite with **27 unit tests** covering all modules, quantitative indicators, error handlers, and sentiment algorithms.
 
 ### Run All Pytest Tests (Quiet Mode)
 ```powershell
 python -m pytest -q
 ```
-*Expected Result: `13 passed in ~10s`.*
+*Expected Result: `27 passed in ~10s`.*
 
 ### Run Detailed Pytest Breakdown (Verbose Mode)
 ```powershell
 python -m pytest -v
+```
+
+### Run Sentiment Analysis Tests Specifically
+```powershell
+python -m pytest tests/test_sentiment.py -v
+```
+
+### Run News Retrieval & Mock Tests
+```powershell
+python -m pytest tests/test_news.py -v
 ```
 
 ### Run Live End-to-End Agent Verification
